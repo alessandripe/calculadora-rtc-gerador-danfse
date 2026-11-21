@@ -1,0 +1,11 @@
+{
+  "tomador": {
+    "cpf": "529.982.247-25",
+    "nome": "Maria da Silva",
+    "email": "maria@example.com"
+  },
+  "descricao": "Honorários advocatícios referentes a novembro/2026, conforme contrato de prestação de serviços.",
+  "valor": 1500.00,
+  "competencia": "2026-11-21",
+  "issRetido": false
+}

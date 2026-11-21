@@ -14,3 +14,9 @@ coverage.html
 Thumbs.db
 *.swp
 *~
+
+# Emissor de NFS-e: nunca versionar certificado, numeração ou notas emitidas
+*.pfx
+*.p12
+numeracao.json
+/notas/
