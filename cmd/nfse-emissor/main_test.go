@@ -26,6 +26,9 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
+// dirTeste é a pasta do pacote, guardada antes de qualquer t.Chdir.
+var dirTeste, _ = os.Getwd()
+
 var agoraFixo = func() time.Time { return time.Date(2026, 11, 21, 16, 30, 0, 0, time.UTC) }
 
 // prepararPasta cria escritorio.json, nota.json e um certificado de teste
@@ -34,7 +37,7 @@ func prepararPasta(t *testing.T, cnpjCert string) string {
 	t.Helper()
 	dir := t.TempDir()
 	copiar := func(nome string) {
-		dados, err := os.ReadFile(filepath.Join("exemplo", nome))
+		dados, err := os.ReadFile(filepath.Join(dirTeste, "exemplo", nome))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -111,6 +114,9 @@ func autoriza(w http.ResponseWriter, _ []byte) {
 
 func rodar(t *testing.T, args ...string) (string, error) {
 	t.Helper()
+	// Roda numa pasta temporária para que a pasta de saída padrão ("notas")
+	// e o registro.txt não sejam criados dentro do repositório.
+	t.Chdir(t.TempDir())
 	var out bytes.Buffer
 	err := executar(context.Background(), args, &out, agoraFixo)
 	return out.String(), err
@@ -293,7 +299,7 @@ func validarSchema(t *testing.T, xml []byte) {
 		t.Skip("xmllint não instalado")
 	}
 	dir := t.TempDir()
-	origem := filepath.Join("..", "..", "internal", "emissor", "dps", "testdata", "schemas")
+	origem := filepath.Join(dirTeste, "..", "..", "internal", "emissor", "dps", "testdata", "schemas")
 	arquivos, _ := os.ReadDir(origem)
 	for _, a := range arquivos {
 		c, _ := os.ReadFile(filepath.Join(origem, a.Name()))
