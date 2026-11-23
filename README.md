@@ -264,3 +264,8 @@ Para regenerar os arquivos do Swagger:
 ```bash
 task swagger
 ```
+
+## Emissor de NFS-e
+
+O comando `cmd/nfse-emissor` monta, assina e envia a DPS para a Sefin Nacional
+com o certificado A1 do prestador. Veja [docs/emissor-nfse.md](docs/emissor-nfse.md).

@@ -1,0 +1,22 @@
+{
+  "cnpj": "11222333000181",
+  "inscricaoMunicipal": "",
+  "codigoMunicipio": "5201405",
+  "email": "contato@escritorio.example",
+  "certificado": "certificado-a1.pfx",
+  "serie": "1",
+  "simples": {
+    "opcao": 3,
+    "regimeApuracao": 1,
+    "regimeEspecial": 0
+  },
+  "servico": {
+    "codigoTributacaoNacional": "171401",
+    "codigoTributacaoMunicipal": "",
+    "codigoNBS": ""
+  },
+  "tributacao": {
+    "aliquotaISSQN": 0,
+    "percentualTotalSimples": 0
+  }
+}
