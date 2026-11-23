@@ -40,6 +40,10 @@ func Novo(base string, cert tls.Certificate) *Cliente {
 		TLSClientConfig: &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			MinVersion:   tls.VersionTLS12,
+			// A Sefin (IIS) só pede o certificado do cliente depois do
+			// handshake, renegociando a conexão TLS 1.2. Sem isso o Go
+			// recusa com "tls: no renegotiation".
+			Renegotiation: tls.RenegotiateFreelyAsClient,
 		},
 		Proxy:               http.ProxyFromEnvironment,
 		TLSHandshakeTimeout: 15 * time.Second,

@@ -197,6 +197,10 @@ func TestMTLS(t *testing.T) {
 	tr.TLSClientConfig.RootCAs = x509.NewCertPool()
 	tr.TLSClientConfig.RootCAs.AddCert(srv.Certificate())
 
+	if tr.TLSClientConfig.Renegotiation != tls.RenegotiateFreelyAsClient {
+		t.Error("o cliente precisa aceitar a renegociação TLS que a Sefin usa para pedir o certificado")
+	}
+
 	n, err := c.ConsultarNFSe(context.Background(), "X")
 	if err != nil {
 		t.Fatal(err)
