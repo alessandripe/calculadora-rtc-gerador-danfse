@@ -18,6 +18,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"danfse-service/internal/emissor"
@@ -58,7 +59,7 @@ comandos:
 
 Use "nfse-emissor <comando> -h" para ver as opções.`
 
-func executar(ctx context.Context, args []string, out io.Writer, agora func() time.Time) error {
+func executar(ctx context.Context, args []string, out io.Writer, agora func() time.Time) (errFinal error) {
 	if len(args) == 0 {
 		return errors.New(ajuda)
 	}
@@ -87,6 +88,24 @@ func executar(ctx context.Context, args []string, out io.Writer, agora func() ti
 	}
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	// Registra cada execução em <saida>/registro.txt, para conferir depois
+	// sem precisar copiar a tela. A senha nunca é escrita aqui.
+	if reg, err := abrirRegistro(*saida, agora()); err == nil {
+		defer reg.Close()
+		fmt.Fprintf(reg, "$ nfse-emissor %s %s\n", cmd, strings.Join(args, " "))
+		out = io.MultiWriter(out, reg)
+		if sefin.Diagnostico != nil {
+			antes := sefin.Diagnostico
+			sefin.Diagnostico = io.MultiWriter(antes, reg)
+			defer func() { sefin.Diagnostico = antes }()
+		}
+		defer func() {
+			if errFinal != nil {
+				fmt.Fprintln(reg, "erro:", errFinal)
+			}
+		}()
 	}
 
 	amb, err := lerAmbiente(*ambiente)
@@ -245,6 +264,18 @@ var pedirSenha = func() (string, error) {
 		return "", fmt.Errorf("ler senha: %w", err)
 	}
 	return string(b), nil
+}
+
+func abrirRegistro(saida string, agora time.Time) (*os.File, error) {
+	if err := os.MkdirAll(saida, 0o700); err != nil {
+		return nil, err
+	}
+	f, err := os.OpenFile(filepath.Join(saida, "registro.txt"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Fprintf(f, "\n=== %s ===\n", agora.In(emissor.Brasilia).Format("02/01/2006 15:04:05"))
+	return f, nil
 }
 
 func lerAmbiente(s string) (dps.Ambiente, error) {

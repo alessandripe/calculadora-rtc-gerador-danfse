@@ -174,6 +174,10 @@ func TestEmitirEnviando(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(saida, "homologacao", "nfse-52014052211222333000181000000000000126119999999999.xml")); err != nil {
 		t.Error("XML da NFS-e não foi gravado")
 	}
+	reg, err := os.ReadFile(filepath.Join(saida, "registro.txt"))
+	if err != nil || !strings.Contains(string(reg), "Chave de acesso: 52014052211222333000181000000000000126119999999999") {
+		t.Errorf("registro.txt deveria ter o resultado: %v\n%s", err, reg)
+	}
 }
 
 func TestEmitirRejeitada(t *testing.T) {
@@ -185,6 +189,9 @@ func TestEmitirRejeitada(t *testing.T) {
 	_, err := rodar(t, "emitir", "-config", filepath.Join(dir, "escritorio.json"), "-nota", filepath.Join(dir, "nota.json"), "-saida", filepath.Join(dir, "n"), "-enviar")
 	if err == nil || !strings.Contains(err.Error(), "E0714") || !strings.Contains(err.Error(), "não virou nota") {
 		t.Fatalf("erro = %v", err)
+	}
+	if reg, _ := os.ReadFile(filepath.Join(dir, "n", "registro.txt")); !strings.Contains(string(reg), "erro: nota rejeitada") {
+		t.Errorf("registro.txt deveria ter o erro:\n%s", reg)
 	}
 }
 
