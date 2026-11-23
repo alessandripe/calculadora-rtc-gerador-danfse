@@ -188,7 +188,13 @@ func TestMTLS(t *testing.T) {
 	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{"chaveAcesso": r.TLS.PeerCertificates[0].Subject.CommonName})
 	}))
-	srv.TLS = &tls.Config{ClientAuth: tls.RequireAnyClientCert}
+	// O servidor anuncia uma autoridade que não emitiu o certificado do
+	// cliente, como pode acontecer com a Sefin. O cliente deve enviar mesmo assim.
+	outraCA := certificadoCliente(t)
+	outraCAx509, _ := x509.ParseCertificate(outraCA.Certificate[0])
+	pool := x509.NewCertPool()
+	pool.AddCert(outraCAx509)
+	srv.TLS = &tls.Config{ClientAuth: tls.RequireAnyClientCert, ClientCAs: pool}
 	srv.StartTLS()
 	defer srv.Close()
 
@@ -201,9 +207,18 @@ func TestMTLS(t *testing.T) {
 		t.Error("o cliente precisa aceitar a renegociação TLS que a Sefin usa para pedir o certificado")
 	}
 
+	var diag strings.Builder
+	Diagnostico = &diag
+	defer func() { Diagnostico = nil }()
+
 	n, err := c.ConsultarNFSe(context.Background(), "X")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !strings.Contains(diag.String(), "o servidor pediu certificado do cliente; ele aceita 1 autoridades") ||
+		!strings.Contains(diag.String(), "emissor aceito pelo servidor:") ||
+		!strings.Contains(diag.String(), "sem a cadeia") {
+		t.Errorf("diagnóstico inesperado:\n%s", diag.String())
 	}
 	if n.ChaveAcesso != "PRESTADOR:11222333000181" {
 		t.Fatalf("servidor viu o certificado %q", n.ChaveAcesso)

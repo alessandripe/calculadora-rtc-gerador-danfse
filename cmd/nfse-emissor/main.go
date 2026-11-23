@@ -29,6 +29,9 @@ import (
 )
 
 func main() {
+	if os.Getenv("NFSE_DIAGNOSTICO") != "" {
+		sefin.Diagnostico = os.Stderr
+	}
 	if err := executar(context.Background(), os.Args[1:], os.Stdout, time.Now); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)

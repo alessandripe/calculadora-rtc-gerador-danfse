@@ -10,6 +10,7 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -27,6 +28,32 @@ const (
 	URLHomologacao = "https://sefin.producaorestrita.nfse.gov.br/SefinNacional"
 )
 
+// Diagnostico, quando definido, recebe detalhes da conexão TLS (pedido de
+// certificado pelo servidor, cadeia enviada). Útil para investigar HTTP 403.
+var Diagnostico io.Writer
+
+func diagnosticarPedido(info *tls.CertificateRequestInfo, cert tls.Certificate) {
+	if Diagnostico == nil {
+		return
+	}
+	fmt.Fprintf(Diagnostico, "[tls] o servidor pediu certificado do cliente; ele aceita %d autoridades\n", len(info.AcceptableCAs))
+	aceitas := map[string]bool{}
+	for _, ca := range info.AcceptableCAs {
+		aceitas[string(ca)] = true
+	}
+	for i, der := range cert.Certificate {
+		c, err := x509.ParseCertificate(der)
+		if err != nil {
+			continue
+		}
+		fmt.Fprintf(Diagnostico, "[tls] enviando cert %d: titular %q, emissor %q, emissor aceito pelo servidor: %v\n",
+			i, c.Subject.CommonName, c.Issuer.CommonName, aceitas[string(c.RawIssuer)])
+	}
+	if len(cert.Certificate) == 1 {
+		fmt.Fprintln(Diagnostico, "[tls] atenção: o .pfx tem só o certificado do titular, sem a cadeia das autoridades certificadoras")
+	}
+}
+
 // Cliente fala com a Sefin Nacional.
 type Cliente struct {
 	base string
@@ -38,8 +65,16 @@ type Cliente struct {
 func Novo(base string, cert tls.Certificate) *Cliente {
 	transporte := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			MinVersion:   tls.VersionTLS12,
+			// Sempre apresenta o certificado do prestador. Com o campo
+			// Certificates, o Go só envia o certificado se o emissor dele
+			// estiver na lista de autoridades que o servidor anuncia; a Sefin
+			// anuncia uma lista que pode não bater com a cadeia exportada do
+			// Windows, e aí nada é enviado e a resposta é HTTP 403.
+			GetClientCertificate: func(info *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+				diagnosticarPedido(info, cert)
+				return &cert, nil
+			},
+			MinVersion: tls.VersionTLS12,
 			// A Sefin (IIS) só pede o certificado do cliente depois do
 			// handshake, renegociando a conexão TLS 1.2. Sem isso o Go
 			// recusa com "tls: no renegotiation".
