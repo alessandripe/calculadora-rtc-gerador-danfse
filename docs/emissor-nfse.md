@@ -16,11 +16,9 @@ homologação (produção restrita, sem valor fiscal). Ainda não estão aqui o 
    com os valores de um escritório de advocacia ME/EPP do Simples em
    Aparecida de Goiânia (IBGE 5201405, código de serviço 171401).
 2. Crie um `nota.json` por nota (veja o exemplo).
-3. Defina a senha do certificado na variável de ambiente, nunca no arquivo:
-
-   ```bash
-   export NFSE_CERT_SENHA='senha-do-certificado'
-   ```
+3. A senha do certificado nunca fica em arquivo. O comando pede a senha no
+   terminal, sem mostrar o que é digitado. Em scripts, use a variável de
+   ambiente `NFSE_CERT_SENHA`.
 
 ## Usar
 

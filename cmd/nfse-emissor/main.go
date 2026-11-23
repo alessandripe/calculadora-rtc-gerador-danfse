@@ -24,6 +24,8 @@ import (
 	"danfse-service/internal/emissor/assinatura"
 	"danfse-service/internal/emissor/dps"
 	"danfse-service/internal/emissor/sefin"
+
+	"golang.org/x/term"
 )
 
 func main() {
@@ -211,7 +213,10 @@ func carregarCertificado(esc emissor.Escritorio, baseConfig string, agora time.T
 	}
 	senha, ok := os.LookupEnv("NFSE_CERT_SENHA")
 	if !ok {
-		return nil, errors.New("defina a senha do certificado na variável de ambiente NFSE_CERT_SENHA")
+		var err error
+		if senha, err = pedirSenha(); err != nil {
+			return nil, err
+		}
 	}
 	cert, err := assinatura.CarregarPFX(caminho, senha)
 	if err != nil {
@@ -221,6 +226,22 @@ func carregarCertificado(esc emissor.Escritorio, baseConfig string, agora time.T
 		return nil, err
 	}
 	return cert, nil
+}
+
+// pedirSenha pede a senha do certificado no terminal, sem mostrar o que é
+// digitado. Fora de um terminal, exige a variável NFSE_CERT_SENHA.
+var pedirSenha = func() (string, error) {
+	fd := int(os.Stdin.Fd())
+	if !term.IsTerminal(fd) {
+		return "", errors.New("defina a senha do certificado na variável de ambiente NFSE_CERT_SENHA")
+	}
+	fmt.Fprint(os.Stderr, "Senha do certificado (não aparece ao digitar): ")
+	b, err := term.ReadPassword(fd)
+	fmt.Fprintln(os.Stderr)
+	if err != nil {
+		return "", fmt.Errorf("ler senha: %w", err)
+	}
+	return string(b), nil
 }
 
 func lerAmbiente(s string) (dps.Ambiente, error) {
